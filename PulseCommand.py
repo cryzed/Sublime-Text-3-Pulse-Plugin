@@ -143,7 +143,7 @@ class PulseCommand(sublime_plugin.TextCommand):
                     rgb_is_zero = True
                     break
 
-                r, g, b = list(map(lambda value: value - 1 if value > 0 else value, [r, g, b]))
+                r, g, b = list(map(lambda value: value - 1 if value > 0 else value, (r, g, b)))
                 background_setting['background'] = rgb_to_hex(r, g, b)
 
             color_scheme_cache_path = os.path.join(cache_path, str(index))
