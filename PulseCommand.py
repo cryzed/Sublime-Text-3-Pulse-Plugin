@@ -49,6 +49,10 @@ def rgb_to_hex(r, g, b):
     return '#' + binascii.hexlify(struct.pack('BBB', r, g, b)).decode('ascii')
 
 
+def make_change_view_color_scheme_function(view_settings, sublime_text_color_scheme_path):
+    return lambda: view_settings.set('color_scheme', sublime_text_color_scheme_path)
+
+
 def stop_pulsing_view(view_id):
     if not view_id in pulsing_views:
         return
@@ -102,16 +106,16 @@ class PulseCommand(sublime_plugin.TextCommand):
             return
 
         view_settings = self.view.settings()
-        color_scheme_sublime_path = view_settings.get('color_scheme')
-        color_scheme_path = os.path.join(APPDATA_PATH, os.path.normpath(color_scheme_sublime_path))
+        sublime_text_color_scheme_path = view_settings.get('color_scheme')
+        color_scheme_path = os.path.join(APPDATA_PATH, os.path.normpath(sublime_text_color_scheme_path))
 
         if not os.path.exists(color_scheme_path):
-            path_segments = color_scheme_sublime_path.split('/')
+            path_segments = sublime_text_color_scheme_path.split('/')
             extraction_path = os.path.join(PACKAGES_PATH, *path_segments[1:-1])
             if not os.path.exists(extraction_path):
                 os.makedirs(extraction_path)
 
-            extract_from_package(color_scheme_sublime_path, extraction_path)
+            extract_from_package(sublime_text_color_scheme_path, extraction_path)
 
         theme = plistlib.readPlist(color_scheme_path)
         background_settings = []
@@ -128,7 +132,7 @@ class PulseCommand(sublime_plugin.TextCommand):
             os.makedirs(cache_path)
 
         rgb_is_zero = False
-        changes = [lambda: view_settings.set('color_scheme', color_scheme_sublime_path)]
+        changes = [make_change_view_color_scheme_function(view_settings, sublime_text_color_scheme_path)]
         for index in range(delta):
             if rgb_is_zero:
                 break
@@ -142,16 +146,10 @@ class PulseCommand(sublime_plugin.TextCommand):
                 r, g, b = list(map(lambda value: value - 1 if value > 0 else value, [r, g, b]))
                 background_setting['background'] = rgb_to_hex(r, g, b)
 
-            path = os.path.join(cache_path, str(index))
-            plistlib.writePlist(theme, path)
-            relative_path = os.path.relpath(path, APPDATA_PATH).replace('\\', '/')
-
-            def make_change_color_scheme_function(relative_path):
-                def function():
-                    view_settings.set('color_scheme', relative_path)
-                return function
-
-            changes.append(make_change_color_scheme_function(relative_path))
+            color_scheme_cache_path = os.path.join(cache_path, str(index))
+            plistlib.writePlist(theme, color_scheme_cache_path)
+            new_sublime_text_color_scheme_path = os.path.relpath(color_scheme_cache_path, APPDATA_PATH).replace('\\', '/')
+            changes.append(make_change_view_color_scheme_function(view_settings, new_sublime_text_color_scheme_path))
 
         pulse_thread = PulseThread(changes, delay, pause)
         pulsing_views[view_id] = pulse_thread
