@@ -1,6 +1,7 @@
 import binascii
 import os
 import plistlib
+import shutil
 import struct
 import threading
 import time
@@ -9,7 +10,36 @@ import zipfile
 import sublime
 import sublime_plugin
 
+PACKAGES_PATH = None
+APPDATA_PATH = None
+CACHE_PATH = None
+
 pulsing_views = {}
+
+
+def plugin_loaded():
+    global PACKAGES_PATH
+    global APPDATA_PATH
+    global CACHE_PATH
+
+    PACKAGES_PATH = sublime.packages_path()
+    APPDATA_PATH = os.path.dirname(PACKAGES_PATH)
+    CACHE_PATH = os.path.join(PACKAGES_PATH, 'User', 'Pulse.cache')
+
+
+def plugin_unloaded():
+    shutil.rmtree(CACHE_PATH)
+    for thread in pulsing_views.items():
+        thread.stop()
+
+
+def extract_from_package(member_path, path):
+    path_segments = member_path.split('/')
+    package_name = path_segments[1]
+    package_path = os.path.join(APPDATA_PATH, 'Installed Packages', package_name + '.sublime-package')
+
+    with zipfile.ZipFile(package_path) as file_:
+        file_.extract('/'.join(path_segments[2:]), path)
 
 
 def hex_to_rgb(hex):
@@ -18,17 +48,6 @@ def hex_to_rgb(hex):
 
 def rgb_to_hex(r, g, b):
     return '#' + binascii.hexlify(struct.pack('BBB', r, g, b)).decode('ascii')
-
-
-def extract_from_package(member_path, path):
-    path_segments = member_path.split('/')
-    package_name = path_segments[1]
-
-    sublime_text_appdata_path = os.path.dirname(sublime.packages_path())
-    package_path = os.path.join(sublime_text_appdata_path, 'Installed Packages', package_name + '.sublime-package')
-
-    with zipfile.ZipFile(package_path) as file_:
-        file_.extract('/'.join(path_segments[2:]), path)
 
 
 class PulseEventListener(sublime_plugin.EventListener):
@@ -77,20 +96,17 @@ class PulseCommand(sublime_plugin.TextCommand):
                 del pulsing_views[view_id]
             return
 
-        sublime_text_packages_path = sublime.packages_path()
-        sublime_text_appdata_path = os.path.dirname(sublime_text_packages_path)
         view_settings = self.view.settings()
-        color_scheme_relative_path = view_settings.get('color_scheme')
-        color_scheme_path = os.path.join(sublime_text_appdata_path, os.path.normpath(color_scheme_relative_path))
+        color_scheme_sublime_path = view_settings.get('color_scheme')
+        color_scheme_path = os.path.join(APPDATA_PATH, os.path.normpath(color_scheme_sublime_path))
 
-        # Contained within installed package
         if not os.path.exists(color_scheme_path):
-            path_segments = color_scheme_relative_path.split('/')
-            extraction_path = os.path.join(sublime_text_packages_path, *path_segments[1:-1])
+            path_segments = color_scheme_sublime_path.split('/')
+            extraction_path = os.path.join(PACKAGES_PATH, *path_segments[1:-1])
             if not os.path.exists(extraction_path):
                 os.makedirs(extraction_path)
 
-            extract_from_package(color_scheme_relative_path, extraction_path)
+            extract_from_package(color_scheme_sublime_path, extraction_path)
 
         theme = plistlib.readPlist(color_scheme_path)
         background_settings = []
@@ -102,12 +118,11 @@ class PulseCommand(sublime_plugin.TextCommand):
             if setting['scope'] == 'text' or setting['scope'].startswith('source.'):
                 background_settings.append(setting['settings'])
 
-        cache_path = os.path.join(sublime_text_packages_path, 'User', 'Pulse')
-        if not os.path.isdir(cache_path):
-            os.makedirs(cache_path)
+        if not os.path.isdir(CACHE_PATH):
+            os.makedirs(CACHE_PATH)
 
         rgb_is_zero = False
-        changes = [lambda: view_settings.set('color_scheme', color_scheme_relative_path)]
+        changes = [lambda: view_settings.set('color_scheme', color_scheme_sublime_path)]
         for index in range(delta):
             if rgb_is_zero:
                 break
@@ -121,9 +136,9 @@ class PulseCommand(sublime_plugin.TextCommand):
                 r, g, b = list(map(lambda value: value - 1 if value > 0 else value, [r, g, b]))
                 background_setting['background'] = rgb_to_hex(r, g, b)
 
-            path = os.path.join(cache_path, str(index) + '.tmTheme')
+            path = os.path.join(CACHE_PATH, str(index))
             plistlib.writePlist(theme, path)
-            relative_path = os.path.relpath(path, sublime_text_appdata_path).replace('\\', '/')
+            relative_path = os.path.relpath(path, APPDATA_PATH).replace('\\', '/')
 
             def make_change_color_scheme_function(relative_path):
                 def function():
@@ -132,6 +147,6 @@ class PulseCommand(sublime_plugin.TextCommand):
 
             changes.append(make_change_color_scheme_function(relative_path))
 
-        thread = PulseThread(changes, delay, pause)
-        pulsing_views[view_id] = thread
-        thread.start()
+        pulse_thread = PulseThread(changes, delay, pause)
+        pulsing_views[view_id] = pulse_thread
+        pulse_thread.start()
