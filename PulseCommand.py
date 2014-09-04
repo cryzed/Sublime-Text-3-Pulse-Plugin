@@ -86,7 +86,7 @@ class PulseCommand(sublime_plugin.TextCommand):
         # Contained within installed package
         if not os.path.exists(color_scheme_path):
             path_segments = color_scheme_relative_path.split('/')
-            extraction_path = os.path.join(sublime_text_packages_path, os.path.join(*path_segments[1:-1]))
+            extraction_path = os.path.join(sublime_text_packages_path, *path_segments[1:-1])
             if not os.path.exists(extraction_path):
                 os.makedirs(extraction_path)
 
