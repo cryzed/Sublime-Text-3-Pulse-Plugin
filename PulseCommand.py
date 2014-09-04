@@ -101,8 +101,9 @@ class PulseCommand(sublime_plugin.TextCommand):
 
     def run(self, edit, delta=25, delay=0.05, pause=0.5, stop=False):
         view_id = self.view.id()
-        if stop and view_id in pulsing_views:
-            stop_pulsing_view(view_id)
+        if stop:
+            if view_id in pulsing_views:
+                stop_pulsing_view(view_id)
             return
 
         view_settings = self.view.settings()
