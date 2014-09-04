@@ -41,11 +41,11 @@ def extract_from_package(member_path, path):
         file_.extract('/'.join(path_segments[2:]), path)
 
 
-def hex_to_rgb(hex):
+def hex_string_to_rgb(hex):
     return struct.unpack('BBB', bytes.fromhex(hex[1:]))
 
 
-def rgb_to_hex(r, g, b):
+def rgb_to_hex_string(r, g, b):
     return '#' + binascii.hexlify(struct.pack('BBB', r, g, b)).decode('ascii')
 
 
@@ -139,13 +139,13 @@ class PulseCommand(sublime_plugin.TextCommand):
                 break
 
             for background_setting in background_settings:
-                r, g, b = hex_to_rgb(background_setting['background'])
+                r, g, b = hex_string_to_rgb(background_setting['background'])
                 if all(value == 0 for value in (r, g, b)):
                     rgb_is_zero = True
                     break
 
                 r, g, b = list(map(lambda value: value - 1 if value > 0 else value, (r, g, b)))
-                background_setting['background'] = rgb_to_hex(r, g, b)
+                background_setting['background'] = rgb_to_hex_string(r, g, b)
 
             color_scheme_cache_path = os.path.join(cache_path, str(index))
             plistlib.writePlist(theme, color_scheme_cache_path)
