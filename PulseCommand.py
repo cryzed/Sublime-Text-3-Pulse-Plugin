@@ -26,11 +26,10 @@ def plugin_loaded():
     APPDATA_PATH = os.path.dirname(PACKAGES_PATH)
     CACHE_PATH = os.path.join(PACKAGES_PATH, 'User', 'Pulse.cache')
 
+    if os.path.exists(CACHE_PATH):
+        shutil.rmtree(CACHE_PATH)
 
-def plugin_unloaded():
-    shutil.rmtree(CACHE_PATH)
-    for thread in pulsing_views.items():
-        thread.stop()
+    os.makedirs(CACHE_PATH)
 
 
 def extract_from_package(member_path, path):
@@ -50,14 +49,22 @@ def rgb_to_hex(r, g, b):
     return '#' + binascii.hexlify(struct.pack('BBB', r, g, b)).decode('ascii')
 
 
+def stop_pulsing_view(view_id):
+    if not view_id in pulsing_views:
+        return
+
+    pulsing_views[view_id].stop()
+    del pulsing_views[view_id]
+
+    shutil.rmtree(os.path.join(CACHE_PATH, str(view_id)))
+
+
 class PulseEventListener(sublime_plugin.EventListener):
 
     def on_close(self, view):
-        id_ = view.id()
-        if not id_ in pulsing_views:
-            return
-        pulsing_views[id_].stop()
-        del pulsing_views[id_]
+        view_id = view.id()
+        if view_id in pulsing_views:
+            stop_pulsing_view(view_id)
 
 
 class PulseThread(threading.Thread):
@@ -90,10 +97,8 @@ class PulseCommand(sublime_plugin.TextCommand):
 
     def run(self, edit, delta=25, delay=0.05, pause=0.5, stop=False):
         view_id = self.view.id()
-        if stop:
-            if view_id in pulsing_views:
-                pulsing_views[view_id].stop()
-                del pulsing_views[view_id]
+        if stop and view_id in pulsing_views:
+            stop_pulsing_view(view_id)
             return
 
         view_settings = self.view.settings()
@@ -118,8 +123,9 @@ class PulseCommand(sublime_plugin.TextCommand):
             if setting['scope'] == 'text' or setting['scope'].startswith('source.'):
                 background_settings.append(setting['settings'])
 
-        if not os.path.isdir(CACHE_PATH):
-            os.makedirs(CACHE_PATH)
+        cache_path = os.path.join(CACHE_PATH, str(view_id))
+        if not os.path.isdir(cache_path):
+            os.makedirs(cache_path)
 
         rgb_is_zero = False
         changes = [lambda: view_settings.set('color_scheme', color_scheme_sublime_path)]
@@ -136,7 +142,7 @@ class PulseCommand(sublime_plugin.TextCommand):
                 r, g, b = list(map(lambda value: value - 1 if value > 0 else value, [r, g, b]))
                 background_setting['background'] = rgb_to_hex(r, g, b)
 
-            path = os.path.join(CACHE_PATH, str(index))
+            path = os.path.join(cache_path, str(index))
             plistlib.writePlist(theme, path)
             relative_path = os.path.relpath(path, APPDATA_PATH).replace('\\', '/')
 
