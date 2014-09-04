@@ -54,12 +54,8 @@ def make_change_view_color_scheme_function(view_settings, sublime_text_color_sch
 
 
 def stop_pulsing_view(view_id):
-    if not view_id in pulsing_views:
-        return
-
     pulsing_views[view_id].stop()
     del pulsing_views[view_id]
-
     shutil.rmtree(os.path.join(CACHE_PATH, str(view_id)))
 
 
