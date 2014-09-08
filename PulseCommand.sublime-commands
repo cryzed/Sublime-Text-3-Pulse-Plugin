@@ -1,5 +1,0 @@
-[
-    {"caption": "Pulse: Pulse current view (25/0.05/0.5)", "command": "pulse"},
-    {"caption": "Pulse: Pulse current view (255/0.05/0)", "command": "pulse", "args": {"delta": 255, "delay": 0.05, "pause": 0}},
-    {"caption": "Pulse: Stop pulsing current view", "command": "pulse", "args": {"stop": true}}
-]
