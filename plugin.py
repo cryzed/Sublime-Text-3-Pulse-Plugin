@@ -2,6 +2,7 @@ import sublime
 import sublime_plugin
 
 import binascii
+import functools
 import os
 import plistlib
 import shutil
@@ -26,6 +27,14 @@ def plugin_loaded():
         shutil.rmtree(CACHE_PATH)
 
     os.makedirs(CACHE_PATH)
+
+
+def wrap_async_function(function):
+    @functools.wraps(function)
+    def async_function(*args, **kwargs):
+        sublime.set_timeout_async(lambda: function(*args, **kwargs), 0)
+
+    return async_function
 
 
 def get_cache_path(key):
@@ -78,6 +87,10 @@ class TogglePulseViewEventListener(sublime_plugin.EventListener):
 
 
 class TogglePulseViewCommand(sublime_plugin.TextCommand):
+    def __init__(self, *args, **kwargs):
+        sublime_plugin.TextCommand.__init__(self, *args, **kwargs)
+        self.run = wrap_async_function(self.run)
+
     def run(self, edit, delta, delay, pause):
         view_id = self.view.id()
         if view_id in pulsing_views:
@@ -97,21 +110,23 @@ class TogglePulseViewCommand(sublime_plugin.TextCommand):
         original_color_scheme_cache_path = os.path.join(view_cache_path, '0')
         plistlib.writePlist(property_list, original_color_scheme_cache_path)
         changes = [make_change_color_scheme_function(view_settings, make_settings_path(original_color_scheme_cache_path))]
+
+        is_black = False
         for difference in range(1, delta + 1):
-            is_black = False
+            if is_black:
+                break
 
             for setting in background_settings:
                 rgb = hex_string_to_rgb(setting['background'])
                 rgb = tuple(map(lambda value: value - 1 if value > 0 else value, rgb))
                 setting['background'] = rgb_to_hex_string(*rgb)
                 is_black = rgb == BLACK_RGB
+                if is_black:
+                    break
 
             color_scheme_cache_path = os.path.join(view_cache_path, str(difference))
             plistlib.writePlist(property_list, color_scheme_cache_path)
             changes.append(make_change_color_scheme_function(view_settings, make_settings_path(color_scheme_cache_path)))
-
-            if is_black:
-                break
 
         pulsing_views.add(view_id)
         pulse_view(view_id, changes, delay * 1000, pause * 1000)
