@@ -8,7 +8,7 @@ import plistlib
 import shutil
 import struct
 
-APPDATA_PATH = None
+DATA_PATH = None
 CACHE_PATH = None
 BLACK_ARGB = (100, 0, 0, 0)
 
@@ -16,11 +16,11 @@ pulsing_views = {}
 
 
 def plugin_loaded():
-    global APPDATA_PATH
+    global DATA_PATH
     global CACHE_PATH
 
     packages_path = sublime.packages_path()
-    APPDATA_PATH = os.path.dirname(packages_path)
+    DATA_PATH = os.path.dirname(packages_path)
     CACHE_PATH = os.path.join(packages_path, 'User', 'Pulse.cache')
 
     if os.path.exists(CACHE_PATH):
@@ -58,7 +58,7 @@ def argb_to_hex_string(a, r, g, b):
 
 
 def make_settings_path(path):
-    return os.path.relpath(path, APPDATA_PATH).replace('\\', '/')
+    return os.path.relpath(path, DATA_PATH).replace('\\', '/')
 
 
 def make_change_color_scheme_function(settings, path):
