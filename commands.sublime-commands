@@ -1,1 +1,1 @@
-[{"caption": "Toggle pulse view", "command": "toggle_pulse_view", "args": {"delta": 25, "delay": 0.05, "pause": 0.5}}]
+[{"caption": "Toggle Pulse View", "command": "toggle_pulse_view", "args": {"delta": 25, "delay": 0.05, "pause": 0.5}}]
