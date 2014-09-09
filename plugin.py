@@ -10,7 +10,7 @@ import struct
 
 APPDATA_PATH = None
 CACHE_PATH = None
-BLACK_RGB = (0, 0, 0)
+BLACK_ARGB = (100, 0, 0, 0)
 
 pulsing_views = {}
 
@@ -45,12 +45,16 @@ def get_cache_path(key):
     return cache_path
 
 
-def hex_string_to_rgb(hex_string):
-    return struct.unpack('BBB', bytes.fromhex(hex_string[1:]))
+def hex_string_to_argb(hex_string):
+    if len(hex_string) == 7:
+        return (100,) + struct.unpack('BBB', bytes.fromhex(hex_string[1:]))
+    return struct.unpack('BBBB', bytes.fromhex(hex_string[1:]))
 
 
-def rgb_to_hex_string(r, g, b):
-    return '#' + binascii.hexlify(struct.pack('BBB', r, g, b)).decode('ASCII')
+def argb_to_hex_string(a, r, g, b):
+    if a == 100:
+        return '#' + binascii.hexlify(struct.pack('BBB', r, g, b)).decode('ASCII')
+    return '#' + binascii.hexlify(struct.pack('BBBB', a, r, g, b)).decode('ASCII')
 
 
 def make_settings_path(path):
@@ -124,10 +128,10 @@ class TogglePulseViewCommand(sublime_plugin.TextCommand):
                 break
 
             for setting in background_settings:
-                rgb = hex_string_to_rgb(setting['background'])
-                rgb = tuple(map(lambda value: value - 1 if value > 0 else value, rgb))
-                setting['background'] = rgb_to_hex_string(*rgb)
-                is_black = rgb == BLACK_RGB
+                a, r, g, b = hex_string_to_argb(setting['background'])
+                r, g, b = tuple(map(lambda value: value - 1 if value > 0 else value, (r, g, b)))
+                setting['background'] = argb_to_hex_string(a, r, g, b)
+                is_black = (a, r, g, b) == BLACK_ARGB
                 if is_black:
                     break
 
