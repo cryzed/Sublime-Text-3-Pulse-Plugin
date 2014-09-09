@@ -66,17 +66,17 @@ def pulse_view(view_id, changes, delay, pause):
     maximum_delay = delay * len(changes) * 2
 
     for change in changes:
-        sublime.set_timeout_async(change, current_delay)
+        sublime.set_timeout(change, current_delay)
         reverse_delay = maximum_delay - current_delay
 
         # Don't queue the same callback twice at the curve's peak
         if reverse_delay != current_delay:
-            sublime.set_timeout_async(change, reverse_delay)
+            sublime.set_timeout(change, reverse_delay)
 
         current_delay += delay
 
     if view_id in pulsing_views:
-        sublime.set_timeout_async(lambda: pulse_view(view_id, changes, delay, pause), maximum_delay + pause)
+        sublime.set_timeout(lambda: pulse_view(view_id, changes, delay, pause), maximum_delay + pause)
 
 
 class TogglePulseViewEventListener(sublime_plugin.EventListener):
