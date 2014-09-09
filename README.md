@@ -1,4 +1,4 @@
-Sublime Text 3 Toggle Pulse View
+Sublime Text 3 Pulse Plugin
 ===========================
 
 A Plugin for Sublime Text 3 that provides one command via Ctrl+Shift+P which starts and stops gradually shifting the current theme's background color, making it appear to pulse.
