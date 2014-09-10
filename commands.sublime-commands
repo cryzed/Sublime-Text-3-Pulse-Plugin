@@ -1,1 +1,4 @@
-[{"caption": "Toggle Pulse View", "command": "toggle_pulse_view", "args": {"delta": 25, "delay": 0.05, "pause": 0.5}}]
+[
+    {"caption": "Toggle Pulse View (Smooth)", "command": "toggle_pulse_view", "args": {"delta": 25, "delay": 0.05, "pause": 0.5}},
+    {"caption": "Toggle Pulse View (Hearbeat)", "command": "toggle_pulse_view", "args": {"delta": 25, "delay": 0.01, "pause": 0.45}}
+]
