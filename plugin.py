@@ -29,7 +29,7 @@ def plugin_loaded():
     os.makedirs(CACHE_PATH)
 
 
-def wrap_async_function(function):
+def async_function(function):
     @functools.wraps(function)
     def async_function(*args, **kwargs):
         sublime.set_timeout_async(lambda: function(*args, **kwargs), 0)
@@ -101,8 +101,8 @@ class TogglePulseViewEventListener(sublime_plugin.EventListener):
 class TogglePulseViewCommand(sublime_plugin.TextCommand):
     def __init__(self, *args, **kwargs):
         sublime_plugin.TextCommand.__init__(self, *args, **kwargs)
-        self.run = wrap_async_function(self.run)
 
+    @async_function
     def run(self, edit, delta, delay, pause):
         view_id = self.view.id()
         if view_id in pulsing_views and pulsing_views[view_id]['enabled']:
