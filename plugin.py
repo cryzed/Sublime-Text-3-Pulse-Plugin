@@ -129,7 +129,7 @@ class TogglePulseViewCommand(sublime_plugin.TextCommand):
 
             for setting in background_settings:
                 a, r, g, b = hex_string_to_argb(setting['background'])
-                r, g, b = tuple(map(lambda value: value - 1 if value > 0 else value, (r, g, b)))
+                r, g, b = (value-1 if value > 0 else value for value in (r, g, b))
                 setting['background'] = argb_to_hex_string(a, r, g, b)
                 is_black = (a, r, g, b) == BLACK_ARGB
                 if is_black:
